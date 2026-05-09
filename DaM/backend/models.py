@@ -1929,7 +1929,6 @@ def get_classification_log(file_id: int) -> dict | None:
 
 
 def get_files_needing_review(limit: int = 100) -> list:
-        LIMIT 1
     """Get all classified files that need manual review (confidence < 80)."""
     conn = get_connection()
     cursor = conn.cursor()
