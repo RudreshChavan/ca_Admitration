@@ -10,10 +10,15 @@ Flask-WTF==1.2.1
 
 # File handling
 Pillow==10.3.0
+PyPDF2==3.0.1
+aspose-words==24.5.0
+py7zr==0.21.0
 
 # Auth & Security
 Flask-Login==0.6.3
 Werkzeug==3.0.3
+PyJWT==2.8.0
+bcrypt==4.1.2
 
 # Environment
 python-dotenv==1.0.1
