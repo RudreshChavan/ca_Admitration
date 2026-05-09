@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment & secrets
+.env
+*.env
+credentials.json
+
+# Database files (SQLite/local)
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temp files
+DaM/backend/temp_uploads/
+DaM/backend/local_storage/
+DaM/local_storage/
+
+# Migration scripts (not needed in prod)
+migrate_sql.py
+fix_returning.py
+
+# Test files
+DaM/backend/test_*.py
+DaM/backend/test_*.txt
+DaM/backend/check_*.py
+DaM/backend/reset_password.py
+DaM/backend/set_admin.py
+DaM/backend/_append_*.py
+DaM/backend/fix_models.py
+
+# Docs
+*.docx
+*.pdf
+!DaM/frontend/**

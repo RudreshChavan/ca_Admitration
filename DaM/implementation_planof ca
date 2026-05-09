@@ -1,0 +1,195 @@
+# File Upload, Smart Organization, Folder Management, Card UI, Workflow Automation & Notifications
+
+Adding 5 major features to the CA Administration (DaM) platform: enhanced file upload with smart categorization (GST/ITR/Audit), admin folder management, card-based file UI, file review workflow automation, and a real-time notification system.
+
+## Proposed Changes
+
+### Backend — Database Schema
+
+#### [MODIFY] [database.py](file:///d:/DaM/backend/database.py)
+
+Add new tables and columns to support the features:
+
+1. **`notifications` table** — stores real-time alerts for both CA and client
+   - `id`, `user_id`, `type` (file_uploaded, file_reviewed, payment_received), `title`, `message`, `is_read`, `related_id`, `created_at`
+
+2. **`files` table — new columns** (via migration):
+   - `status` — `NVARCHAR(20) DEFAULT 'pending'` — tracks review workflow (pending → reviewed)
+   - `reviewed_at` — `DATETIME2 NULL` — timestamp of when CA reviewed
+   - `reviewed_by` — `INT NULL` — admin user who reviewed
+   - `category` — `NVARCHAR(100) NULL` — smart category (GST, ITR, Audit, etc.)
+
+3. **`folders` table — new columns** (via migration):
+   - `parent_id` — `INT NULL` — enables nested folder structure (Year → Client → Type)
+   - `created_by` — `INT NULL` — tracks who created (admin vs client)
+
+---
+
+### Backend — Models
+
+#### [MODIFY] [models.py](file:///d:/DaM/backend/models.py)
+
+Add new CRUD functions:
+- **Notifications**: `create_notification()`, `get_user_notifications()`, `mark_notification_read()`, `mark_all_notifications_read()`, `get_unread_count()`
+- **File workflow**: `update_file_status()` — marks file as reviewed, sets `reviewed_at` and `reviewed_by`
+- **Enhanced file queries**: Update `get_files()`, `get_all_files()` to include `status`, `category`, `reviewed_at` fields
+- **Smart categorization**: `detect_file_category()` — maps file names/types to CA categories (GST, ITR, Audit, TDS, Balance Sheet, etc.)
+- **Folder management**: `create_folder_for_client()`, `get_folder_tree()`, `get_all_folders_admin()`
+- **Dashboard updates**: Add pending/reviewed file counts to dashboard stats
+
+---
+
+### Backend — Smart Categorization Service
+
+#### [MODIFY] [file_service.py](file:///d:/DaM/backend/services/file_service.py)
+
+Add `detect_category(filename, mime_type)` function that maps file names to CA-specific categories:
+- Keywords: GST, ITR, Audit, TDS, Balance Sheet, P&L, Invoice, Receipt, PAN, Aadhar, etc.
+- Returns category string used for auto-folder placement and card badges
+
+---
+
+### Backend — Routes
+
+#### [MODIFY] [file_routes.py](file:///d:/DaM/backend/routes/file_routes.py)
+
+- Update `upload_file()` to:
+  - Detect category from filename
+  - Auto-create category folder if missing  
+  - Set initial `status = 'pending'`
+  - Create notification for admin(s): "New file uploaded by {client}"
+
+#### [MODIFY] [admin_routes.py](file:///d:/DaM/backend/routes/admin_routes.py)
+
+- Add `POST /api/admin/file/<id>/review` — marks file as reviewed, moves status, creates notification for client
+- Add `GET /api/admin/files/pending` — returns all pending review files
+- Add `POST /api/admin/folder` — create custom folder for a client
+- Add `GET /api/admin/user/<id>/folders` — get folder tree for a client
+- Update dashboard stats to include pending file count
+
+#### [MODIFY] [folder_routes.py](file:///d:/DaM/backend/routes/folder_routes.py)
+
+- Add `POST /api/folders` — client creates subfolder (within allowed structure)
+- Add `GET /api/folders/tree` — returns nested folder tree
+
+#### [NEW] [notification_routes.py](file:///d:/DaM/backend/routes/notification_routes.py)
+
+- `GET /api/notifications` — list user notifications (paginated)
+- `GET /api/notifications/unread-count` — returns count for badge
+- `PUT /api/notifications/<id>/read` — mark single as read
+- `PUT /api/notifications/read-all` — mark all as read
+
+---
+
+### Backend — App Registration
+
+#### [MODIFY] [app.py](file:///d:/DaM/backend/app.py)
+
+- Register new `notification_bp` blueprint
+
+---
+
+### Frontend — Dashboard (Client View)
+
+#### [MODIFY] [dashboard.html](file:///d:/DaM/frontend/dashboard.html)
+
+- Add **notification bell** icon in top bar with unread count badge
+- Add **notification dropdown panel** 
+- Add **filter bar** above file grid (by type, status, date)
+- Add **status badge** on file cards (Pending / Reviewed)
+- Enhance file card layout with category tag
+
+#### [MODIFY] [dashboard.js](file:///d:/DaM/frontend/js/dashboard.js)
+
+- Add `loadNotifications()`, `markNotificationRead()`, `markAllRead()`
+- Notification polling (every 30 seconds)
+- Enhanced `renderFileCard()` — show status badge, category tag
+- Add filter logic — filter files by type/status/date
+- Notification bell toggle
+- After upload, show "Pending Review" status
+
+---
+
+### Frontend — Admin Panel
+
+#### [MODIFY] [admin.html](file:///d:/DaM/frontend/admin.html)
+
+- Add **"Pending Review"** sidebar item with badge count
+- Add **notification bell** in top bar
+- Add **Pending Review view** — card-based layout of files needing review
+- Add **folder management** UI in user details view
+- Add **"Create Folder" modal** for assigning folders to clients
+
+#### [MODIFY] [admin.js](file:///d:/DaM/frontend/js/admin.js)
+
+- Add `loadPendingFiles()` — displays pending review files as cards
+- Add `reviewFile(fileId)` — marks as reviewed, auto-categorizes/archives
+- Add notification system (bell, dropdown, polling)
+- Add folder management functions — create folder for client, view folder tree
+- Update File Monitor to show card view with status badges
+
+---
+
+### Frontend — Styling
+
+#### [MODIFY] [style.css](file:///d:/DaM/frontend/css/style.css)
+
+New CSS for:
+- **Notification bell** — positioned in top bar, animated badge
+- **Notification dropdown** — glassmorphism panel with notification items
+- **Status badges** — "Pending" (amber pulse), "Reviewed" (green check)
+- **File filter bar** — horizontal filter pills/selects
+- **Category tags** — colored badges (GST=blue, ITR=green, Audit=orange)
+- **Pending review cards** — enhanced card layout with review action button
+- **Folder tree UI** — nested accordion-style folder browser
+- **Enhanced file cards** — more info displayed (status, category, date)
+
+---
+
+## Smart Category Mapping
+
+The system will detect these CA-specific categories from filenames:
+
+| Keywords | Category |
+|----------|----------|
+| gst, gstr, goods and service | GST |
+| itr, income tax, tax return | ITR |
+| audit, auditor | Audit |
+| tds, tax deducted | TDS |
+| balance sheet, bs | Balance Sheet |
+| p&l, profit, loss | P&L |
+| invoice, bill | Invoice |
+| receipt, payment, voucher | Receipt |
+| pan, aadhar, aadhaar, kyc | KYC |
+| salary, payroll, payslip | Payroll |
+
+---
+
+## File Workflow
+
+```mermaid
+graph LR
+    A[Client Uploads File] --> B[Status: Pending]
+    B --> C[CA Gets Notification]
+    C --> D[CA Reviews File]
+    D --> E[Status: Reviewed]
+    E --> F[File Auto-Archived in Category Folder]
+    F --> G[Client Gets Notification]
+```
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Start the server with `python app.py`
+- Test file upload and verify `status=pending` in response
+- Test admin review endpoint and verify status changes to `reviewed`
+- Test notification API endpoints
+- Verify notification count updates
+
+### Manual Verification
+- Open browser, upload a file as client — verify card shows "Pending" badge
+- Login as admin — verify pending review section shows the file
+- Click "Review" — verify status changes, client gets notification
+- Test folder creation and folder tree display
