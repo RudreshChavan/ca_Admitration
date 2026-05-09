@@ -20,4 +20,4 @@ COPY . .
 
 # Expose port and run Gunicorn
 WORKDIR /app/DaM/backend
-CMD sh -c 'python -c "try:\n from database import init_db; init_db()\nexcept Exception as e:\n print(e)" && gunicorn -w 4 -b 0.0.0.0:${PORT:-5000} "app:create_app()"'
+CMD sh -c 'python -c "exec(\"try:\\n    from database import init_db\\n    init_db()\\nexcept Exception as e:\\n    print(e)\")" && gunicorn -w 4 -b 0.0.0.0:${PORT:-5000} "app:create_app()"'
