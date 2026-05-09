@@ -1,11 +1,14 @@
 FROM python:3.11-slim
 
-# Install system dependencies for psycopg2 and Pillow
+# Install system dependencies for psycopg2, Pillow, and Aspose.Words
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
     libjpeg-dev \
     zlib1g-dev \
+    libgdiplus \
+    libfontconfig1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

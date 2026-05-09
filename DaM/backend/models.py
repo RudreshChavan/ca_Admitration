@@ -266,7 +266,7 @@ def get_files(user_id: int, folder_id: int = None, search: str = None, status: s
         params.append(folder_id)
 
     if search:
-        query += " AND f.file_name LIKE ?"
+        query += " AND f.file_name LIKE %s"
         params.append(f"%{search}%")
 
     if status:
@@ -321,7 +321,7 @@ def get_all_files(user_id_filter: int = None, folder_id_filter: int = None, sear
         params.append(folder_id_filter)
 
     if search:
-        query += " AND f.file_name LIKE ?"
+        query += " AND f.file_name LIKE %s"
         params.append(f"%{search}%")
 
     if status:
