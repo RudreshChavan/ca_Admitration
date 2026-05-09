@@ -360,43 +360,9 @@ def download_file(file_id):
     # ── AUTO CONVERT .doc TO .docx ──
     file_name_lower = file_dict.get("file_name", "").lower()
     if file_name_lower.endswith(".doc"):
-        import aspose.words as aw
-        
-        # Determine new paths by replacing the last 4 chars (.doc) with .docx
-        docx_full_path = full_path[:-4] + ".docx"
-        docx_filename = os.path.basename(full_path)[:-4] + ".docx"
-        
-        if not os.path.exists(docx_full_path):
-            try:
-                # Convert the file
-                doc = aw.Document(full_path)
-                doc.save(docx_full_path)
-                
-                new_size = os.path.getsize(docx_full_path)
-                new_web_link = web_link[:-4] + ".docx"
-                new_file_name = file_dict["file_name"][:-4] + ".docx"
-                
-                # Update Database
-                conn = get_connection()
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE files SET file_name = %s, drive_web_link = %s, file_size = %s WHERE id = %s",
-                    (new_file_name, new_web_link, new_size, file_id)
-                )
-                conn.commit()
-                conn.close()
-                
-                # Try to clean up the old .doc file
-                try:
-                    os.remove(full_path)
-                except Exception:
-                    pass
-            except Exception as e:
-                print(f"[Conversion] Failed to convert .doc to .docx: {e}")
-                return jsonify({"error": f"Failed to convert legacy .doc file: {str(e)}"}), 500
-        
-        # Point to the newly converted .docx file
-        full_path = docx_full_path
+        # Auto-conversion via Aspose.Words has been disabled to prevent server crashes.
+        # Legacy .doc files will be served as-is.
+        pass
 
     directory = os.path.dirname(full_path)
     filename = os.path.basename(full_path)
@@ -453,12 +419,12 @@ def edit_local_file(file_id):
             
             # If the file is .docx, generate a clean .docx file from the HTML content
             if full_path.lower().endswith('.docx'):
-                import aspose.words as aw
-                builder = aw.DocumentBuilder()
-                # Wrap the HTML to ensure proper formatting
-                html_to_insert = f"<html><head><meta charset='utf-8'><style>body{{font-family:'Times New Roman',serif;font-size:16px;line-height:1.6;}}</style></head><body>{new_content}</body></html>"
-                builder.insert_html(html_to_insert)
-                builder.document.save(full_path)
+                import docx
+                from htmldocx import HtmlToDocx
+                doc = docx.Document()
+                new_parser = HtmlToDocx()
+                new_parser.add_html_to_document(new_content, doc)
+                doc.save(full_path)
             else:
                 with open(full_path, "w", encoding="utf-8") as f:
                     f.write(new_content)

@@ -54,22 +54,10 @@ def create_document():
 
     try:
         # Create a blank .docx using aspose.words
-        import aspose.words as aw
-        doc = aw.Document()
-        builder = aw.DocumentBuilder(doc)
-
-        # Set default styling
-        font = builder.font
-        font.name = "Calibri"
-        font.size = 12
-
-        # Add title
-        builder.paragraph_format.style_identifier = aw.StyleIdentifier.HEADING1
-        builder.writeln(title)
-
-        # Add placeholder
-        builder.paragraph_format.style_identifier = aw.StyleIdentifier.NORMAL
-        builder.writeln("")
+        import docx
+        doc = docx.Document()
+        doc.add_heading(title, level=1)
+        doc.add_paragraph("")
 
         # Save to a temporary ID-based directory (we'll update after DB insert)
         temp_dir = os.path.join(WORKSPACE_DIR, "_temp")
@@ -163,14 +151,8 @@ def upload_document():
 
         # Convert .doc to .docx if needed
         if name_lower.endswith('.doc') and not name_lower.endswith('.docx'):
-            import aspose.words as aw
-            doc = aw.Document(temp_path)
-            docx_path = temp_path + "x"
-            doc.save(docx_path)
             os.remove(temp_path)
-            temp_path = docx_path
-            filename = filename + "x"
-            file_size = os.path.getsize(temp_path)
+            return jsonify({"error": "Legacy .doc format is no longer supported for uploads. Please convert your file to .docx before uploading."}), 400
 
         # Create DB record
         doc_record = create_workspace_document(
@@ -295,15 +277,12 @@ def update_document_content(doc_id):
 
             html_content = data["content"]
 
-            import aspose.words as aw
-            builder = aw.DocumentBuilder()
-            html_to_insert = (
-                f"<html><head><meta charset='utf-8'>"
-                f"<style>body{{font-family:'Calibri',sans-serif;font-size:12pt;line-height:1.6;}}</style>"
-                f"</head><body>{html_content}</body></html>"
-            )
-            builder.insert_html(html_to_insert)
-            builder.document.save(full_path)
+            import docx
+            from htmldocx import HtmlToDocx
+            doc = docx.Document()
+            new_parser = HtmlToDocx()
+            new_parser.add_html_to_document(html_content, doc)
+            doc.save(full_path)
 
         # Update metadata
         new_size = os.path.getsize(full_path)
